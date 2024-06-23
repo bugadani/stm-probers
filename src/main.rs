@@ -92,11 +92,20 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         let start = mem.address as u64;
         let size = mem.size as u64;
         let range = start..start + size;
+
+        let access_by_core = match (variant, mem.name.as_str()) {
+            // Skip SRAM2 because by default its inaccessible by the main core
+            (n, "SRAM2A" | "SRAM2B") if n.starts_with("STM32WB") => continue,
+            (n, "SRAM2A_ICODE" | "SRAM2B_ICODE") if n.starts_with("STM32WB") => continue,
+            // Allow all cores by default
+            _ => cores.clone(),
+        };
+
         var.memory_map.push(MemoryRegion::Ram(RamRegion {
             name: Some(mem.name.clone()),
             range,
             is_boot_memory: false,
-            cores: cores.clone(),
+            cores: access_by_core,
         }));
     }
 }
