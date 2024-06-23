@@ -11,6 +11,7 @@ fn main() {
         "STM32G4", "STM32H5", "STM32H7", "STM32L0", "STM32L1", "STM32L4", "STM32L5", "STM32U0",
         "STM32U5", "STM32WB", "STM32WBA", "STM32WL",
     ];
+    let no_package_variants = ["STM32F1"];
     let families = families
         .iter()
         .map(|f| {
@@ -31,8 +32,8 @@ fn main() {
     _ = std::fs::create_dir("output");
 
     let start = Instant::now();
-    for (family, variants_xml, probe_rs_data, output) in families {
-        println!("Processing {family}");
+    for (family_name, variants_xml, probe_rs_data, output) in families {
+        println!("Processing {family_name}");
         let family = family_members(&variants_xml);
 
         let yaml = std::fs::read_to_string(&probe_rs_data).unwrap();
@@ -45,8 +46,12 @@ fn main() {
             };
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
-            for (_, variant) in device.chip_variants() {
-                update_variant(&mut family_data, &variant, &memories);
+            if no_package_variants.contains(&family_name) {
+                update_variant(&mut family_data, &device.device, &memories);
+            } else {
+                for (_, variant) in device.chip_variants() {
+                    update_variant(&mut family_data, &variant, &memories);
+                }
             }
         }
 
