@@ -440,7 +440,7 @@ dependencies = [
 [[package]]
 name = "probe-rs-target"
 version = "0.24.0"
-source = "git+https://github.com/probe-rs/probe-rs.git#5ea7759f2fcec66b7166b0c36c86715a4322a00f"
+source = "git+https://github.com/probe-rs/probe-rs.git#97fe2a74d464e24ff1314fcb7f6fec217562e7ef"
 dependencies = [
  "base64",
  "jep106",
