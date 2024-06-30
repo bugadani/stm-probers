@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Write as _, time::Instant};
 
-use probe_rs_target::{ChipFamily, MemoryRegion, NvmRegion, RamRegion};
+use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
 use quick_xml::Reader;
 use stm32_data_gen::memory::{self, Memory};
 use stm32_data_serde::chip::memory::Kind;
@@ -82,7 +82,12 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         var.memory_map.push(MemoryRegion::Nvm(NvmRegion {
             name: Some(mem.name.clone()),
             range,
-            is_boot_memory: true,
+            access: Some(MemoryAccess {
+                read: true,
+                write: true,
+                execute: true,
+                boot: true,
+            }),
             cores: cores.clone(),
             is_alias: false,
         }));
@@ -101,10 +106,25 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
             _ => cores.clone(),
         };
 
+        let access_attrs = match (variant, mem.name.as_str()) {
+            (n, "CCMRAM") if n.starts_with("STM32F4") => MemoryAccess {
+                read: true,
+                write: true,
+                execute: false,
+                boot: false,
+            },
+            _ => MemoryAccess {
+                read: true,
+                write: true,
+                execute: true,
+                boot: false,
+            },
+        };
+
         var.memory_map.push(MemoryRegion::Ram(RamRegion {
             name: Some(mem.name.clone()),
             range,
-            is_boot_memory: false,
+            access: Some(access_attrs),
             cores: access_by_core,
         }));
     }
@@ -209,14 +229,27 @@ pub fn serialize_to_yaml_string(family: &ChipFamily) -> String {
 
     let mut yaml_string = String::with_capacity(raw_yaml_string.len());
     for reader_line in raw_yaml_string.lines() {
+        let trimmed_line = reader_line.trim();
         if reader_line.ends_with(": null")
             || reader_line.ends_with(": []")
             || reader_line.ends_with(": {}")
             || reader_line.ends_with(": false")
         {
             // Some fields have default-looking, but significant values that we want to keep.
-            let exceptions = ["rtt_scan_ranges: []"];
-            if !exceptions.contains(&reader_line.trim()) {
+            let keep_default = [
+                "rtt_scan_ranges: []",
+                "read: false",
+                "write: false",
+                "execute: false",
+            ];
+            if !keep_default.contains(&trimmed_line) {
+                // Skip the line
+                continue;
+            }
+        } else {
+            // Some fields have different default values than the type may indicate.
+            let trim_nondefault = ["read: true", "write: true", "execute: true"];
+            if trim_nondefault.contains(&trimmed_line) {
                 // Skip the line
                 continue;
             }
@@ -234,5 +267,28 @@ pub fn serialize_to_yaml_string(family: &ChipFamily) -> String {
         yaml_string.push('\n');
     }
 
-    yaml_string
+    // Second pass: remove empty `access:` objects
+    let mut output = String::with_capacity(yaml_string.len());
+    let mut lines = yaml_string.lines().peekable();
+    while let Some(line) = lines.next() {
+        if line.trim() == "access:" {
+            let indent_level = line.find(|c: char| c != ' ').unwrap_or(0);
+
+            let Some(next) = lines.peek() else {
+                // No other lines, access is empty, skip it
+                continue;
+            };
+
+            let next_indent_level = next.find(|c: char| c != ' ').unwrap_or(0);
+            if next_indent_level <= indent_level {
+                // Access is empty, skip it
+                continue;
+            }
+        }
+
+        output.push_str(line);
+        output.push('\n');
+    }
+
+    output
 }
