@@ -84,7 +84,7 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
             range,
             access: Some(MemoryAccess {
                 read: true,
-                write: true,
+                write: false,
                 execute: true,
                 boot: true,
             }),
