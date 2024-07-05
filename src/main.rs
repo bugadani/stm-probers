@@ -5,6 +5,13 @@ use quick_xml::Reader;
 use stm32_data_gen::memory::{self, Memory};
 use stm32_data_serde::chip::memory::Kind;
 
+fn is_prefixed_with_any(s: &str, prefixes: Option<impl AsRef<[&'static str]>>) -> Option<bool> {
+    let Some(prefixes) = prefixes else {
+        return None;
+    };
+    Some(prefixes.as_ref().iter().any(|prefix| s.starts_with(prefix)))
+}
+
 fn main() {
     let families = [
         "STM32C0", "STM32F0", "STM32F1", "STM32F2", "STM32F3", "STM32F4", "STM32F7", "STM32G0",
@@ -53,23 +60,11 @@ fn main() {
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
 
         for device in family.devices {
-            if let Some(ref prefix) = allow_prefix {
-                if prefix
-                    .iter()
-                    .find(|p| device.device.starts_with(&**p))
-                    .is_none()
-                {
-                    continue;
-                }
+            if is_prefixed_with_any(&device.device, allow_prefix.as_ref()) == Some(false) {
+                continue;
             }
-            if let Some(ref prefix) = reject_prefix {
-                if prefix
-                    .iter()
-                    .find(|p| device.device.starts_with(&**p))
-                    .is_some()
-                {
-                    continue;
-                }
+            if is_prefixed_with_any(&device.device, reject_prefix.as_ref()) == Some(true) {
+                continue;
             }
             let Some(mut memories) = memory::get(&device.device) else {
                 println!("Missing embassy data for {}", device.device);
