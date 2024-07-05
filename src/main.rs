@@ -20,19 +20,32 @@ fn main() {
                 format!("sources/embassy/devices/{f}.db"),
                 format!("sources/probe-rs/probe-rs/targets/{f}_Series.yaml"),
                 format!("output/{f}_Series.yaml"),
+                None,
+                None,
             )
         })
+        .chain([(
+            "STM32H7",
+            String::from("sources/embassy/devices/STM32H7.db"),
+            String::from("sources/probe-rs/probe-rs/targets/STM32H7_Series.yaml"),
+            String::from("output/STM32H7_Series.yaml"),
+            None,
+            Some(vec!["STM32H7R", "STM32H7S"]),
+        )])
         .chain([(
             "STM32H7RS",
             String::from("sources/embassy/devices/STM32H7.db"),
             String::from("sources/probe-rs/probe-rs/targets/STM32H7RS_Series.yaml"),
             String::from("output/STM32H7RS_Series.yaml"),
+            Some(vec!["STM32H7R", "STM32H7S"]),
+            None,
         )]);
 
     _ = std::fs::create_dir("output");
 
     let start = Instant::now();
-    for (family_name, variants_xml, probe_rs_data, output) in families {
+    for (family_name, variants_xml, probe_rs_data, output, allow_prefix, reject_prefix) in families
+    {
         println!("Processing {family_name}");
         let family = family_members(&variants_xml);
 
@@ -40,6 +53,24 @@ fn main() {
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
 
         for device in family.devices {
+            if let Some(ref prefix) = allow_prefix {
+                if prefix
+                    .iter()
+                    .find(|p| device.device.starts_with(&**p))
+                    .is_none()
+                {
+                    continue;
+                }
+            }
+            if let Some(ref prefix) = reject_prefix {
+                if prefix
+                    .iter()
+                    .find(|p| device.device.starts_with(&**p))
+                    .is_some()
+                {
+                    continue;
+                }
+            }
             let Some(mut memories) = memory::get(&device.device) else {
                 println!("Missing embassy data for {}", device.device);
                 continue;
