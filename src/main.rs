@@ -106,58 +106,57 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         .map(|core| core.name.clone())
         .collect::<Vec<_>>();
 
-    for mem in memories.iter().filter(|m| m.kind == Kind::Flash) {
+    for mem in memories {
         let start = mem.address as u64;
         let size = mem.size as u64;
         let range = start..start + size;
-        var.memory_map.push(MemoryRegion::Nvm(NvmRegion {
-            name: Some(mem.name.clone()),
-            range,
-            access: Some(MemoryAccess {
-                read: true,
-                write: false,
-                execute: true,
-                boot: true,
+
+        let region = match mem.kind {
+            Kind::Flash => MemoryRegion::Nvm(NvmRegion {
+                name: Some(mem.name.clone()),
+                range,
+                access: Some(MemoryAccess {
+                    read: true,
+                    write: false,
+                    execute: true,
+                    boot: true,
+                }),
+                cores: cores.clone(),
+                is_alias: false,
             }),
-            cores: cores.clone(),
-            is_alias: false,
-        }));
-    }
+            Kind::Ram => {
+                let access_by_core = match (variant, mem.name.as_str()) {
+                    // Skip SRAM2 because by default its inaccessible by the main core
+                    (n, "SRAM2A" | "SRAM2B") if n.starts_with("STM32WB") => continue,
+                    (n, "SRAM2A_ICODE" | "SRAM2B_ICODE") if n.starts_with("STM32WB") => continue,
+                    // Allow all cores by default
+                    _ => cores.clone(),
+                };
 
-    for mem in memories.iter().filter(|m| m.kind == Kind::Ram) {
-        let start = mem.address as u64;
-        let size = mem.size as u64;
-        let range = start..start + size;
+                let access_attrs = match (variant, mem.name.as_str()) {
+                    (n, "CCMRAM") if n.starts_with("STM32F4") => MemoryAccess {
+                        read: true,
+                        write: true,
+                        execute: false,
+                        boot: false,
+                    },
+                    _ => MemoryAccess {
+                        read: true,
+                        write: true,
+                        execute: true,
+                        boot: false,
+                    },
+                };
 
-        let access_by_core = match (variant, mem.name.as_str()) {
-            // Skip SRAM2 because by default its inaccessible by the main core
-            (n, "SRAM2A" | "SRAM2B") if n.starts_with("STM32WB") => continue,
-            (n, "SRAM2A_ICODE" | "SRAM2B_ICODE") if n.starts_with("STM32WB") => continue,
-            // Allow all cores by default
-            _ => cores.clone(),
+                MemoryRegion::Ram(RamRegion {
+                    name: Some(mem.name.clone()),
+                    range,
+                    access: Some(access_attrs),
+                    cores: access_by_core,
+                })
+            }
         };
-
-        let access_attrs = match (variant, mem.name.as_str()) {
-            (n, "CCMRAM") if n.starts_with("STM32F4") => MemoryAccess {
-                read: true,
-                write: true,
-                execute: false,
-                boot: false,
-            },
-            _ => MemoryAccess {
-                read: true,
-                write: true,
-                execute: true,
-                boot: false,
-            },
-        };
-
-        var.memory_map.push(MemoryRegion::Ram(RamRegion {
-            name: Some(mem.name.clone()),
-            range,
-            access: Some(access_attrs),
-            cores: access_by_core,
-        }));
+        var.memory_map.push(region);
     }
 }
 
