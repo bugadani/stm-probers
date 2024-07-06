@@ -1,9 +1,10 @@
-use std::{borrow::Cow, fmt::Write as _, time::Instant};
+use std::time::Instant;
 
 use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
 use quick_xml::Reader;
 use stm32_data_gen::memory::{self, Memory};
 use stm32_data_serde::chip::memory::Kind;
+use target_gen::commands::elf::serialize_to_yaml_string;
 
 fn is_prefixed_with_any(s: &str, prefixes: Option<impl AsRef<[&'static str]>>) -> Option<bool> {
     let Some(prefixes) = prefixes else {
@@ -81,7 +82,7 @@ fn main() {
             }
         }
 
-        let yaml = serialize_to_yaml_string(&family_data);
+        let yaml = serialize_to_yaml_string(&family_data).unwrap();
         std::fs::write(&output, yaml)
             .unwrap_or_else(|e| panic!("Failed to write to {output}: {e}"));
     }
@@ -238,77 +239,4 @@ fn family_members(family: &str) -> Family {
     }
 
     family
-}
-
-/// Some optimizations to improve the readability of the `serde_yaml` output:
-/// - If `Option<T>` is `None`, it is serialized as `null` ... we want to omit it.
-/// - If `Vec<T>` is empty, it is serialized as `[]` ... we want to omit it.
-/// - `serde_yaml` serializes hex formatted integers as single quoted strings, e.g. '0x1234' ... we need to remove the single quotes so that it round-trips properly.
-pub fn serialize_to_yaml_string(family: &ChipFamily) -> String {
-    let raw_yaml_string = serde_yaml::to_string(family).unwrap();
-
-    let mut yaml_string = String::with_capacity(raw_yaml_string.len());
-    for reader_line in raw_yaml_string.lines() {
-        let trimmed_line = reader_line.trim();
-        if reader_line.ends_with(": null")
-            || reader_line.ends_with(": []")
-            || reader_line.ends_with(": {}")
-            || reader_line.ends_with(": false")
-        {
-            // Some fields have default-looking, but significant values that we want to keep.
-            let keep_default = [
-                "rtt_scan_ranges: []",
-                "read: false",
-                "write: false",
-                "execute: false",
-            ];
-            if !keep_default.contains(&trimmed_line) {
-                // Skip the line
-                continue;
-            }
-        } else {
-            // Some fields have different default values than the type may indicate.
-            let trim_nondefault = ["read: true", "write: true", "execute: true"];
-            if trim_nondefault.contains(&trimmed_line) {
-                // Skip the line
-                continue;
-            }
-        }
-
-        let mut reader_line = Cow::Borrowed(reader_line);
-        if (reader_line.contains("'0x") || reader_line.contains("'0X"))
-            && reader_line.ends_with('\'')
-        {
-            // Remove the single quotes
-            reader_line = reader_line.replace('\'', "").into();
-        }
-
-        yaml_string.write_str(&reader_line).unwrap();
-        yaml_string.push('\n');
-    }
-
-    // Second pass: remove empty `access:` objects
-    let mut output = String::with_capacity(yaml_string.len());
-    let mut lines = yaml_string.lines().peekable();
-    while let Some(line) = lines.next() {
-        if line.trim() == "access:" {
-            let indent_level = line.find(|c: char| c != ' ').unwrap_or(0);
-
-            let Some(next) = lines.peek() else {
-                // No other lines, access is empty, skip it
-                continue;
-            };
-
-            let next_indent_level = next.find(|c: char| c != ' ').unwrap_or(0);
-            if next_indent_level <= indent_level {
-                // Access is empty, skip it
-                continue;
-            }
-        }
-
-        output.push_str(line);
-        output.push('\n');
-    }
-
-    output
 }
