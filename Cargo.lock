@@ -2331,7 +2331,7 @@ dependencies = [
 [[package]]
 name = "stm32-data-gen"
 version = "0.1.0"
-source = "git+https://github.com/bugadani/stm32-data.git?branch=lib#8a7f5e4692838115ab67be79acf7459d819d6c1d"
+source = "git+https://github.com/bugadani/stm32-data.git?branch=lib#b8b8de4f7e14554444a48ecc4269a0965b8227db"
 dependencies = [
  "anyhow",
  "chiptool",
@@ -2352,7 +2352,7 @@ dependencies = [
 [[package]]
 name = "stm32-data-serde"
 version = "0.1.0"
-source = "git+https://github.com/bugadani/stm32-data.git?branch=lib#8a7f5e4692838115ab67be79acf7459d819d6c1d"
+source = "git+https://github.com/bugadani/stm32-data.git?branch=lib#b8b8de4f7e14554444a48ecc4269a0965b8227db"
 dependencies = [
  "ref_thread_local",
  "regex",
