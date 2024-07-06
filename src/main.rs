@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
 use quick_xml::Reader;
-use stm32_data_gen::memory::{self, Memory};
+use stm32_data_gen::memory::{self, Access, Memory};
 use stm32_data_serde::chip::memory::Kind;
 use target_gen::commands::elf::serialize_to_yaml_string;
 
@@ -107,13 +107,15 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         let size = mem.size as u64;
         let range = start..start + size;
 
+        let access = mem.access.unwrap_or_else(|| Access {
+            read: true,
+            write: matches!(mem.kind, Kind::Ram),
+            execute: true,
+        });
         let access_attrs = MemoryAccess {
-            read: mem.access.map(|acc| acc.read).unwrap_or(true),
-            write: mem
-                .access
-                .map(|acc| acc.read)
-                .unwrap_or(matches!(mem.kind, Kind::Ram)),
-            execute: mem.access.map(|acc| acc.execute).unwrap_or(true),
+            read: access.read,
+            write: access.write,
+            execute: access.execute,
             boot: matches!(mem.kind, Kind::Flash),
         };
 
