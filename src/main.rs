@@ -106,6 +106,16 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         let size = mem.size as u64;
         let range = start..start + size;
 
+        let access_attrs = MemoryAccess {
+            read: mem.access.map(|acc| acc.read).unwrap_or(true),
+            write: mem
+                .access
+                .map(|acc| acc.read)
+                .unwrap_or(matches!(mem.kind, Kind::Ram)),
+            execute: mem.access.map(|acc| acc.execute).unwrap_or(true),
+            boot: matches!(mem.kind, Kind::Flash),
+        };
+
         let region = match mem.kind {
             Kind::Flash => MemoryRegion::Nvm(NvmRegion {
                 name: Some(mem.name.clone()),
@@ -126,21 +136,6 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
                     (n, "SRAM2A_ICODE" | "SRAM2B_ICODE") if n.starts_with("STM32WB") => continue,
                     // Allow all cores by default
                     _ => cores.clone(),
-                };
-
-                let access_attrs = match (variant, mem.name.as_str()) {
-                    (n, "CCMRAM") if n.starts_with("STM32F4") => MemoryAccess {
-                        read: true,
-                        write: true,
-                        execute: false,
-                        boot: false,
-                    },
-                    _ => MemoryAccess {
-                        read: true,
-                        write: true,
-                        execute: true,
-                        boot: false,
-                    },
                 };
 
                 MemoryRegion::Ram(RamRegion {
