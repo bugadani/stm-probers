@@ -1662,7 +1662,7 @@ dependencies = [
 [[package]]
 name = "probe-rs"
 version = "0.24.0"
-source = "git+https://github.com/bugadani/probe-rs.git?branch=tgen#ab185a28557aee82cd5968da4a35a2349014c4cd"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
 dependencies = [
  "anyhow",
  "async-io",
@@ -1700,7 +1700,7 @@ dependencies = [
 [[package]]
 name = "probe-rs-target"
 version = "0.24.0"
-source = "git+https://github.com/bugadani/probe-rs.git?branch=tgen#ab185a28557aee82cd5968da4a35a2349014c4cd"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
 dependencies = [
  "base64",
  "indexmap",
@@ -2463,7 +2463,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "target-gen"
 version = "0.24.0"
-source = "git+https://github.com/bugadani/probe-rs.git?branch=tgen#ab185a28557aee82cd5968da4a35a2349014c4cd"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
 dependencies = [
  "anyhow",
  "clap",
@@ -2471,6 +2471,7 @@ dependencies = [
  "colored",
  "futures",
  "goblin",
+ "jep106",
  "log",
  "parse_int",
  "probe-rs",
