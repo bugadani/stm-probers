@@ -151,6 +151,54 @@ fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memor
         };
         var.memory_map.push(region);
     }
+
+    merge_consecutive_flash_regions(&mut var.memory_map);
+}
+
+fn merge_consecutive_flash_regions(memory_map: &mut Vec<MemoryRegion>) {
+    let mut iter = memory_map.iter().peekable();
+
+    let mut output = Vec::new();
+    while let Some(region) = iter.next() {
+        let region = region.clone();
+
+        let MemoryRegion::Nvm(mut region) = region else {
+            output.push(region);
+            continue;
+        };
+        let Some(name) = region.name.clone() else {
+            output.push(MemoryRegion::Nvm(region));
+            continue;
+        };
+
+        let Some((bank, _)) = name.split_once("_REGION_") else {
+            output.push(MemoryRegion::Nvm(region));
+            continue;
+        };
+
+        region.name = Some(bank.to_string());
+
+        while let Some(next) = iter.peek() {
+            let MemoryRegion::Nvm(next) = next else {
+                break;
+            };
+
+            if !next.name.as_deref().unwrap_or_default().starts_with(bank) {
+                break;
+            }
+
+            if region.range.end != next.range.start {
+                break;
+            }
+
+            region.range.end = next.range.end;
+            iter.next();
+        }
+
+        output.push(MemoryRegion::Nvm(region));
+    }
+
+    *memory_map = output;
 }
 
 #[derive(Default)]
