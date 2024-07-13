@@ -7,6 +7,7 @@ param (
 )
 
 $STM_REV="1a3751550575f8ffee5e45307713a3e08bc9ffb4"
+$PROBE_RS_REV="a0b2fb35b441d27862ec877f0a3ef25114986840"
 
 Switch ($CMD)
 {
@@ -16,6 +17,10 @@ Switch ($CMD)
         git clone https://github.com/probe-rs/probe-rs.git ./sources/probe-rs -q
         cd ./sources/embassy/
         git checkout $STM_REV
+        cd ../..
+
+        cd ./sources/probe-rs/
+        git checkout $PROBE_RS_REV
         cd ../..
     }
     "gen" {

@@ -1662,9 +1662,8 @@ dependencies = [
 [[package]]
 name = "probe-rs"
 version = "0.24.0"
-source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=a0b2fb35b441d27862ec877f0a3ef25114986840#a0b2fb35b441d27862ec877f0a3ef25114986840"
 dependencies = [
- "anyhow",
  "async-io",
  "bincode",
  "bitfield",
@@ -1700,7 +1699,7 @@ dependencies = [
 [[package]]
 name = "probe-rs-target"
 version = "0.24.0"
-source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=a0b2fb35b441d27862ec877f0a3ef25114986840#a0b2fb35b441d27862ec877f0a3ef25114986840"
 dependencies = [
  "base64",
  "indexmap",
@@ -2463,7 +2462,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "target-gen"
 version = "0.24.0"
-source = "git+https://github.com/probe-rs/probe-rs.git?rev=65a831618228e78c5d3e491b5f99b023ea487ebb#65a831618228e78c5d3e491b5f99b023ea487ebb"
+source = "git+https://github.com/probe-rs/probe-rs.git?rev=a0b2fb35b441d27862ec877f0a3ef25114986840#a0b2fb35b441d27862ec877f0a3ef25114986840"
 dependencies = [
  "anyhow",
  "clap",
