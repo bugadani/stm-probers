@@ -7,7 +7,7 @@ param (
 )
 
 $STM_REV="1a3751550575f8ffee5e45307713a3e08bc9ffb4"
-$PROBE_RS_REV="c3ecd813d203c9b9dd94594799d20f57b31fd5b8"
+$PROBE_RS_REV="bba1bb553cc8b80902f498b7e7be4ba085197dcf"
 
 Switch ($CMD)
 {
