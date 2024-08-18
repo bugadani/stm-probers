@@ -80,6 +80,8 @@ fn main() {
                     update_variant(&mut family_data, &variant, &device.device, &memories);
                 }
             }
+
+            add_package_variants(&mut family_data, device.chip_variants());
         }
 
         deduplicate_by_name(&mut family_data);
@@ -90,6 +92,22 @@ fn main() {
     }
     let end = start.elapsed();
     println!("Finished in {:.02}s", end.as_secs_f32());
+}
+
+fn add_package_variants<'a>(
+    family_data: &mut ChipFamily,
+    chip_variants: impl Iterator<Item = (&'a str, String)>,
+) {
+    for (device, package) in chip_variants {
+        // Look up device in family
+        let Some(variant) = family_data.variants.iter_mut().find(|v| v.name == device) else {
+            println!("Missing from probe-rs: {device}");
+            continue;
+        };
+
+        // Add package variant
+        variant.package_variants.push(package);
+    }
 }
 
 fn deduplicate_by_name(family_data: &mut ChipFamily) {
