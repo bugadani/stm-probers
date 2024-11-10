@@ -6,8 +6,10 @@ param (
     [string]$peri
 )
 
+# https://github.com/embassy-rs/stm32-data-sources
 $STM_REV="1a3751550575f8ffee5e45307713a3e08bc9ffb4"
-$PROBE_RS_REV="c3ecd813d203c9b9dd94594799d20f57b31fd5b8"
+# https://github.com/probe-rs/probe-rs
+$PROBE_RS_REV="4a711751dd250ae232cb2668fedfa9678c47e4ab"
 
 Switch ($CMD)
 {
