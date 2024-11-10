@@ -74,13 +74,17 @@ fn main() {
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
             if no_package_variants.contains(&family_name) {
-                update_variant(&mut family_data, &device.device, &memories);
+                update_variant(&mut family_data, &device.device, &device.device, &memories);
             } else {
                 for (_, variant) in device.chip_variants() {
-                    update_variant(&mut family_data, &variant, &memories);
+                    update_variant(&mut family_data, &variant, &device.device, &memories);
                 }
             }
+
+            add_package_variants(&mut family_data, device.chip_variants());
         }
+
+        deduplicate_by_name(&mut family_data);
 
         let yaml = serialize_to_yaml_string(&family_data).unwrap();
         std::fs::write(&output, yaml)
@@ -90,11 +94,41 @@ fn main() {
     println!("Finished in {:.02}s", end.as_secs_f32());
 }
 
-fn update_variant(family_data: &mut ChipFamily, variant: &str, memories: &[Memory]) {
+fn add_package_variants<'a>(
+    family_data: &mut ChipFamily,
+    chip_variants: impl Iterator<Item = (&'a str, String)>,
+) {
+    for (device, package) in chip_variants {
+        // Look up device in family
+        let Some(variant) = family_data.variants.iter_mut().find(|v| v.name == device) else {
+            println!("Missing from probe-rs: {device}");
+            continue;
+        };
+
+        // Add package variant
+        variant.package_variants.push(package);
+    }
+}
+
+fn deduplicate_by_name(family_data: &mut ChipFamily) {
+    let mut seen = std::collections::HashSet::new();
+    family_data.variants.retain(|v| seen.insert(v.name.clone()));
+}
+
+fn update_variant(
+    family_data: &mut ChipFamily,
+    variant: &str,
+    out_name: &str,
+    memories: &[Memory],
+) {
     let Some(var) = family_data.variants.iter_mut().find(|v| v.name == variant) else {
         println!("Missing from probe-rs: {variant}");
         return;
     };
+
+    // Rename variant to the package-less format
+    var.name = out_name.to_string();
+
     var.memory_map.clear();
     let cores = var
         .cores
