@@ -77,6 +77,7 @@ fn main() {
             add_package_variants(&mut family_data, device.chip_variants());
         }
 
+        deduplicate_package_variants(&mut family_data);
         deduplicate_by_name(&mut family_data);
 
         let yaml = serialize_to_yaml_string(&family_data).unwrap();
@@ -85,6 +86,13 @@ fn main() {
     }
     let end = start.elapsed();
     println!("Finished in {:.02}s", end.as_secs_f32());
+}
+
+fn deduplicate_package_variants(family_data: &mut ChipFamily) {
+    for variant in &mut family_data.variants {
+        let mut seen = std::collections::HashSet::new();
+        variant.package_variants.retain(|v| seen.insert(v.clone()));
+    }
 }
 
 fn add_package_variants<'a>(
