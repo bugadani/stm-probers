@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.157", features = ["derive"] }
-serde_yaml = "0.9.19"
+serde_yaml = "=0.9.34-deprecated"
 quick-xml = { version = "0.31.0", features = [] }
 stm32-data-gen = { git = "https://github.com/bugadani/stm32-data.git", branch = "lib" }
 stm32-data-serde = { git = "https://github.com/bugadani/stm32-data.git", branch = "lib" }
-probe-rs-target = { git = "https://github.com/probe-rs/probe-rs.git", rev = "613c73ef4bd615c39c221123c556b68a29475eaf" }
-target-gen = { git = "https://github.com/probe-rs/probe-rs.git", rev = "613c73ef4bd615c39c221123c556b68a29475eaf" }
+probe-rs-target = { git = "https://github.com/bugadani/probe-rs.git", branch = "serde" }
+target-gen = { git = "https://github.com/bugadani/probe-rs.git", branch = "serde" }
+probe-rs = { git = "https://github.com/bugadani/probe-rs.git", branch = "serde" }
