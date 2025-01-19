@@ -7,9 +7,9 @@ param (
 )
 
 # https://github.com/embassy-rs/stm32-data-sources
-$STM_REV="1a3751550575f8ffee5e45307713a3e08bc9ffb4"
+$STM_REV="75952a08c9f5491aeaa044d390f14678f15e67b9"
 # https://github.com/probe-rs/probe-rs
-$PROBE_RS_REV="4a711751dd250ae232cb2668fedfa9678c47e4ab"
+$PROBE_RS_REV="4fd36e20d3a7eaad902e88b95b89b010843e1bd2"
 
 Switch ($CMD)
 {

@@ -9,5 +9,5 @@ serde_yaml = "0.9.19"
 quick-xml = { version = "0.31.0", features = [] }
 stm32-data-gen = { git = "https://github.com/bugadani/stm32-data.git", branch = "lib" }
 stm32-data-serde = { git = "https://github.com/bugadani/stm32-data.git", branch = "lib" }
-probe-rs-target = { git = "https://github.com/probe-rs/probe-rs.git", rev = "613c73ef4bd615c39c221123c556b68a29475eaf" }
-target-gen = { git = "https://github.com/probe-rs/probe-rs.git", rev = "613c73ef4bd615c39c221123c556b68a29475eaf" }
+probe-rs-target = { git = "https://github.com/probe-rs/probe-rs.git", rev = "4fd36e20d3a7eaad902e88b95b89b010843e1bd2" }
+target-gen = { git = "https://github.com/probe-rs/probe-rs.git", rev = "4fd36e20d3a7eaad902e88b95b89b010843e1bd2" }
