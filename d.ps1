@@ -16,7 +16,7 @@ $DATA_SOURCES = @(
     @{
         name = "probe-rs";
         repo = "https://github.com/probe-rs/probe-rs.git";
-        rev = "4fd36e20d3a7eaad902e88b95b89b010843e1bd2"
+        rev = "3ddfd10870619fd104e7ed5999e2c5222749405d"
     }
 )
 
