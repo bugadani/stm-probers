@@ -8,11 +8,6 @@ param (
 
 # array of (data source, repository, revision)
 $DATA_SOURCES = @(
-    @{ # TODO: remove this
-        name = "stm32-data-sources";
-        repo = "https://github.com/embassy-rs/stm32-data-sources.git";
-        rev = "1a3751550575f8ffee5e45307713a3e08bc9ffb4"
-    },
     @{
         name = "stm32-data-generated";
         repo = "https://github.com/embassy-rs/stm32-data-generated.git";

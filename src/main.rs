@@ -1,82 +1,47 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
-use quick_xml::Reader;
-use stm32_data_serde::chip::{
-    memory::{Access, Kind},
-    Memory,
+use stm32_data_serde::{
+    chip::{
+        memory::{Access, Kind},
+        Memory,
+    },
+    Chip,
 };
 use target_gen::commands::elf::serialize_to_yaml_string;
 
-fn is_prefixed_with_any(s: &str, prefixes: Option<impl AsRef<[&'static str]>>) -> Option<bool> {
-    let Some(prefixes) = prefixes else {
-        return None;
-    };
-    Some(prefixes.as_ref().iter().any(|prefix| s.starts_with(prefix)))
-}
-
 fn main() {
-    let families = [
-        "STM32C0", "STM32F0", "STM32F1", "STM32F2", "STM32F3", "STM32F4", "STM32F7", "STM32G0",
-        "STM32G4", "STM32H5", "STM32H7", "STM32L0", "STM32L1", "STM32L4", "STM32L5", "STM32U0",
-        "STM32U5", "STM32WB", "STM32WBA", "STM32WL",
-    ];
-    let families = families
-        .iter()
-        .map(|f| {
-            (
-                *f,
-                format!("sources/stm32-data-sources/devices/{f}.db"),
-                format!("sources/probe-rs/probe-rs/targets/{f}_Series.yaml"),
-                format!("output/{f}_Series.yaml"),
-                None,
-                None,
-            )
-        })
-        .chain([(
-            "STM32H7",
-            String::from("sources/stm32-data-sources/devices/STM32H7.db"),
-            String::from("sources/probe-rs/probe-rs/targets/STM32H7_Series.yaml"),
-            String::from("output/STM32H7_Series.yaml"),
-            None,
-            Some(vec!["STM32H7R", "STM32H7S"]),
-        )])
-        .chain([(
-            "STM32H7RS",
-            String::from("sources/stm32-data-sources/devices/STM32H7.db"),
-            String::from("sources/probe-rs/probe-rs/targets/STM32H7RS_Series.yaml"),
-            String::from("output/STM32H7RS_Series.yaml"),
-            Some(vec!["STM32H7R", "STM32H7S"]),
-            None,
-        )]);
+    let embassy_data = load_stm_data("sources/stm32-data-generated/data/chips/");
+
+    //for (family, chips) in &embassy_data {
+    //    println!("  {family}: {}", chips.len());
+    //}
 
     _ = std::fs::create_dir("output");
 
     let start = Instant::now();
-    for (family_name, variants_xml, probe_rs_data, output, allow_prefix, reject_prefix) in families
-    {
+    for (family_name, chips) in embassy_data {
+        let probe_rs_data = format!("sources/probe-rs/probe-rs/targets/{family_name}_Series.yaml");
+        let output = format!("output/{family_name}_Series.yaml");
+
         println!("Processing {family_name}");
-        let family = family_members(&variants_xml);
 
         let yaml = std::fs::read_to_string(&probe_rs_data).unwrap();
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
 
-        for device in family.devices {
-            if is_prefixed_with_any(&device.device, allow_prefix.as_ref()) == Some(false) {
-                continue;
-            }
-            if is_prefixed_with_any(&device.device, reject_prefix.as_ref()) == Some(true) {
-                continue;
-            }
-            let Some(mut memories) = memory_data_of(&device.device) else {
-                println!("Missing embassy data for {}", device.device);
-                continue;
-            };
+        for device in chips {
+            let mut memories = device.memory.clone();
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
-            update_variant(&mut family_data, &device.device, &device.device, &memories);
+            update_variant(&mut family_data, &device.name, &device.name, &memories);
 
-            add_package_variants(&mut family_data, device.chip_variants());
+            add_package_variants(
+                &mut family_data,
+                device
+                    .packages
+                    .iter()
+                    .map(|variant| (device.name.as_str(), variant.name.clone())),
+            );
         }
 
         deduplicate_package_variants(&mut family_data);
@@ -90,22 +55,40 @@ fn main() {
     println!("Finished in {:.02}s", end.as_secs_f32());
 }
 
-fn memory_data_of(device: &str) -> Option<Vec<Memory>> {
-    match std::fs::File::open(format!(
-        "sources/stm32-data-generated/data/chips/{device}.json"
-    )) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            println!("Missing embassy data for {device}");
-            return None;
-        }
-        Err(e) => panic!("Failed to open {device}: {e}"),
-        Ok(file) => {
-            let chip: stm32_data_serde::Chip =
-                serde_json::from_reader(file).expect("Failed to parse JSON");
+fn load_stm_data(arg: &str) -> HashMap<String, Vec<Chip>> {
+    let stm32_data = std::fs::read_dir(arg).unwrap();
 
-            Some(chip.memory)
+    let start = Instant::now();
+
+    let mut families = HashMap::<String, Vec<Chip>>::new();
+
+    for entry in stm32_data {
+        let entry = entry.unwrap();
+
+        if entry.file_name().to_string_lossy().ends_with(".json") {
+            let contents = std::fs::read_to_string(entry.path()).unwrap();
+
+            let chip = serde_json::from_str::<Chip>(&contents)
+                .unwrap_or_else(|e| panic!("Failed to parse JSON: {e}"));
+
+            let family = match chip.family.as_str() {
+                "STM32L4+" => "STM32L4".to_string(),
+                "STM32H7" if chip.name.starts_with("STM32H7R") => "STM32H7RS".to_string(),
+                "STM32H7" if chip.name.starts_with("STM32H7S") => "STM32H7RS".to_string(),
+                other => other.to_string(),
+            };
+
+            families.entry(family).or_default().push(chip);
         }
     }
+
+    println!(
+        "Loaded {} families in {}s",
+        families.len(),
+        start.elapsed().as_secs_f32()
+    );
+
+    families
 }
 
 fn deduplicate_package_variants(family_data: &mut ChipFamily) {
@@ -122,7 +105,7 @@ fn add_package_variants<'a>(
     for (device, package) in chip_variants {
         // Look up device in family
         let Some(variant) = family_data.variants.iter_mut().find(|v| v.name == device) else {
-            println!("Missing from probe-rs: {device}");
+            println!("Missing from probe-rs: {package}");
             continue;
         };
 
@@ -254,94 +237,4 @@ fn merge_consecutive_flash_regions(memory_map: &mut Vec<MemoryRegion>) {
     }
 
     *memory_map = output;
-}
-
-#[derive(Default)]
-struct Family {
-    name: String,
-    devices: Vec<Device>,
-}
-
-#[derive(Default)]
-struct Device {
-    pn: String,
-    device: String,
-    variants: Vec<String>,
-}
-
-impl Device {
-    fn chip_variants(&self) -> impl Iterator<Item = (&str, String)> + '_ {
-        self.variants.iter().map(|variant| {
-            if self.pn.contains('-') {
-                (self.device.as_str(), self.pn.replace('-', variant))
-            } else {
-                (self.device.as_str(), format!("{}{}", self.pn, variant))
-            }
-        })
-    }
-}
-
-fn family_members(family: &str) -> Family {
-    let file =
-        std::fs::read_to_string(family).unwrap_or_else(|e| panic!("Failed to read {family}: {e}"));
-    let mut reader = Reader::from_str(&file);
-    reader.trim_text(true);
-
-    let mut qpath = String::with_capacity(100);
-
-    let mut current_device = Device::default();
-    let mut family = Family::default();
-
-    loop {
-        match reader.read_event().unwrap() {
-            quick_xml::events::Event::Start(tag) => {
-                let tag_name = String::from_utf8_lossy(tag.name().into_inner());
-                if !qpath.is_empty() {
-                    qpath.push('.');
-                }
-                qpath.push_str(&*tag_name);
-            }
-            quick_xml::events::Event::End(tag) => {
-                match qpath.as_str() {
-                    "family.subFamily.device" => {
-                        family.devices.push(std::mem::take(&mut current_device));
-                    }
-                    _ => {}
-                }
-
-                let tag_name = String::from_utf8_lossy(tag.name().into_inner());
-                qpath = if let Some((rest, expected)) = qpath.rsplit_once('.') {
-                    assert!(tag_name == expected);
-                    rest.to_string()
-                } else {
-                    assert!(tag_name == qpath);
-                    qpath.clear();
-                    qpath
-                };
-            }
-            quick_xml::events::Event::Empty(_) => {}
-            quick_xml::events::Event::Text(text) => {
-                let text = String::from_utf8_lossy(&text.into_inner()).to_string();
-
-                match qpath.as_str() {
-                    "family" => family.name = text,
-                    "family.subFamily.device.PN" => {
-                        let pieces = text.split(',').collect::<Vec<_>>();
-                        current_device.pn = pieces[0].to_string();
-                        current_device.device = pieces[pieces.len() - 1].to_string();
-                    }
-                    "family.subFamily.device.variants" => {
-                        current_device.variants =
-                            text.split(',').map(String::from).collect::<Vec<_>>()
-                    }
-                    _ => {}
-                }
-            }
-            quick_xml::events::Event::Eof => break,
-            quick_xml::events::Event::Comment(_) => {}
-            other => println!("{:?}", other),
-        }
-    }
-
-    family
 }
