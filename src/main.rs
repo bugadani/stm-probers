@@ -19,8 +19,9 @@ fn main() {
 
     _ = std::fs::create_dir("output");
 
+    let mut unknown_variants = Vec::new();
     let start = Instant::now();
-    for (family_name, chips) in embassy_data {
+    for (family_name, chips) in embassy_data.iter() {
         let probe_rs_data = format!("sources/probe-rs/probe-rs/targets/{family_name}_Series.yaml");
         let output = format!("output/{family_name}_Series.yaml");
 
@@ -29,7 +30,7 @@ fn main() {
         let yaml = std::fs::read_to_string(&probe_rs_data).unwrap();
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
 
-        for device in chips {
+        for device in chips.iter() {
             let mut memories = device.memory.clone();
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
@@ -47,12 +48,35 @@ fn main() {
         deduplicate_package_variants(&mut family_data);
         deduplicate_by_name(&mut family_data);
 
+        unknown_variants.extend(extra_variants(&family_data, &chips));
+
         let yaml = serialize_to_yaml_string(&family_data).unwrap();
         std::fs::write(&output, yaml)
             .unwrap_or_else(|e| panic!("Failed to write to {output}: {e}"));
     }
+
+    for variant in unknown_variants {
+        println!("embassy data is missing {variant}");
+    }
+
     let end = start.elapsed();
     println!("Finished in {:.02}s", end.as_secs_f32());
+}
+
+fn extra_variants<'a>(
+    family_data: &'a ChipFamily,
+    chips: &'a [Chip],
+) -> impl Iterator<Item = String> + 'a {
+    family_data
+        .variants()
+        .iter()
+        .flat_map(|chip| chip.package_variants())
+        .filter(|chip| {
+            !chips
+                .iter()
+                .any(|c| &c.name == *chip || c.packages.iter().any(|p| &p.name == *chip))
+        })
+        .map(|chip| chip.clone())
 }
 
 fn load_stm_data(arg: &str) -> HashMap<String, Vec<Chip>> {
