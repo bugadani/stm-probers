@@ -2,8 +2,10 @@ use std::time::Instant;
 
 use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
 use quick_xml::Reader;
-use stm32_data_gen::memory::{self, Access, Memory};
-use stm32_data_serde::chip::memory::Kind;
+use stm32_data_serde::chip::{
+    memory::{Access, Kind},
+    Memory,
+};
 use target_gen::commands::elf::serialize_to_yaml_string;
 
 fn is_prefixed_with_any(s: &str, prefixes: Option<impl AsRef<[&'static str]>>) -> Option<bool> {
@@ -24,7 +26,7 @@ fn main() {
         .map(|f| {
             (
                 *f,
-                format!("sources/embassy/devices/{f}.db"),
+                format!("sources/stm32-data-sources/devices/{f}.db"),
                 format!("sources/probe-rs/probe-rs/targets/{f}_Series.yaml"),
                 format!("output/{f}_Series.yaml"),
                 None,
@@ -33,7 +35,7 @@ fn main() {
         })
         .chain([(
             "STM32H7",
-            String::from("sources/embassy/devices/STM32H7.db"),
+            String::from("sources/stm32-data-sources/devices/STM32H7.db"),
             String::from("sources/probe-rs/probe-rs/targets/STM32H7_Series.yaml"),
             String::from("output/STM32H7_Series.yaml"),
             None,
@@ -41,7 +43,7 @@ fn main() {
         )])
         .chain([(
             "STM32H7RS",
-            String::from("sources/embassy/devices/STM32H7.db"),
+            String::from("sources/stm32-data-sources/devices/STM32H7.db"),
             String::from("sources/probe-rs/probe-rs/targets/STM32H7RS_Series.yaml"),
             String::from("output/STM32H7RS_Series.yaml"),
             Some(vec!["STM32H7R", "STM32H7S"]),
@@ -66,7 +68,7 @@ fn main() {
             if is_prefixed_with_any(&device.device, reject_prefix.as_ref()) == Some(true) {
                 continue;
             }
-            let Some(mut memories) = memory::get(&device.device) else {
+            let Some(mut memories) = memory_data_of(&device.device) else {
                 println!("Missing embassy data for {}", device.device);
                 continue;
             };
@@ -86,6 +88,24 @@ fn main() {
     }
     let end = start.elapsed();
     println!("Finished in {:.02}s", end.as_secs_f32());
+}
+
+fn memory_data_of(device: &str) -> Option<Vec<Memory>> {
+    match std::fs::File::open(format!(
+        "sources/stm32-data-generated/data/chips/{device}.json"
+    )) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            println!("Missing embassy data for {device}");
+            return None;
+        }
+        Err(e) => panic!("Failed to open {device}: {e}"),
+        Ok(file) => {
+            let chip: stm32_data_serde::Chip =
+                serde_json::from_reader(file).expect("Failed to parse JSON");
+
+            Some(chip.memory)
+        }
+    }
 }
 
 fn deduplicate_package_variants(family_data: &mut ChipFamily) {
