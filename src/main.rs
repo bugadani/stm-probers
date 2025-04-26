@@ -158,6 +158,18 @@ fn update_variant(
         };
 
         let region = match mem.kind {
+            Kind::Flash if mem.name == "OTP" => MemoryRegion::Nvm(NvmRegion {
+                name: Some(mem.name.clone()),
+                range,
+                access: Some(MemoryAccess {
+                    read: true,
+                    write: false,
+                    execute: false,
+                    boot: false,
+                }),
+                cores: cores.clone(),
+                is_alias: false,
+            }),
             Kind::Flash => MemoryRegion::Nvm(NvmRegion {
                 name: Some(mem.name.clone()),
                 range,
