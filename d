@@ -4,7 +4,7 @@ set -e
 cd $(dirname $0)
 
 CMD=$1
-STM_REV=aafdfaa2b5ee052e5ec10d98076fa8adb576f367
+STM_REV=473c3e2d72ccaf0a9ae381a5f65778479d029639
 PROBE_RS_REV=3ddfd10870619fd104e7ed5999e2c5222749405d
 shift
 
