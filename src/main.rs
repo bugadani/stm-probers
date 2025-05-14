@@ -31,7 +31,7 @@ fn main() {
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
 
         for device in chips.iter() {
-            let mut memories = device.memory.clone();
+            let mut memories = device.memory[0].clone(); // TODO: support multi-bank?
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
             update_variant(&mut family_data, &device.name, &device.name, &memories);
@@ -222,6 +222,7 @@ fn update_variant(
                     cores: access_by_core,
                 })
             }
+            Kind::Eeprom => continue, // TODO
         };
         var.memory_map.push(region);
     }

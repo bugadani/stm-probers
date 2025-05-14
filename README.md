@@ -1,7 +1,7 @@
 STM data generator for probe-rs
 ===============================
 
-This tool uses [stm32-data-sources](https://github.com/embassy-rs/stm32-data-sources) and some
+This tool uses [stm32-data-generated](https://github.com/embassy-rs/stm32-data-generated) and some
 custom code to generate presumably complete device lists and correct memory maps for [probe-rs](https://github.com/probe-rs/probe-rs).
 
 To use the tool, update commit hashes in `d.ps1`, then run `./d.ps1 download-all` and `./d.ps1 gen`.
