@@ -66,6 +66,12 @@ fn main() {
 
         unknown_variants.extend(remove_unknown_variants(&mut family_data, &embassy_chips));
 
+        // Sort variants so we generate a stable order no matter the source:
+        family_data
+            .variants
+            .iter_mut()
+            .for_each(|variant| variant.package_variants.sort());
+
         let yaml = serialize_to_yaml_string(&family_data).unwrap();
         std::fs::write(&output, yaml)
             .unwrap_or_else(|e| panic!("Failed to write to {output}: {e}"));
