@@ -11,12 +11,12 @@ $DATA_SOURCES = @(
     @{
         name = "stm32-data-generated";
         repo = "https://github.com/embassy-rs/stm32-data-generated.git";
-        rev = "3dfb70953b19579eebd28407847084a89d4d9949"
+        rev = "ede7414a7e673ece368bd697ff72de72284985d9"
     },
     @{
         name = "probe-rs";
         repo = "https://github.com/probe-rs/probe-rs.git";
-        rev = "69ff0b5ee70eb70e0fe04681c2fea4e4b270005a"
+        rev = "2e72e1c0bffa78153994f921abc728d864b8201e"
     }
 )
 
