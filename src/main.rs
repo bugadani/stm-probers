@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, path::Path, time::Instant};
 
 use probe_rs_target::{ChipFamily, MemoryAccess, MemoryRegion, NvmRegion, RamRegion};
 use stm32_data_serde::{
@@ -26,6 +26,11 @@ fn main() {
         let output = format!("output/{family_name}_Series.yaml");
 
         println!("Processing {family_name}");
+
+        if !Path::new(&probe_rs_data).exists() {
+            println!("Skipping {family_name} as probe-rs data does not exist");
+            continue;
+        }
 
         let yaml = std::fs::read_to_string(&probe_rs_data).unwrap();
         let mut family_data = serde_yaml::from_str::<ChipFamily>(&yaml).unwrap();
