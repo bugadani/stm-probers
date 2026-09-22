@@ -13,7 +13,7 @@ case "$CMD" in
         rm -rf ./sources/
 
         git clone https://github.com/embassy-rs/stm32-data-generated.git ./sources/stm32-data-generated -q
-        cd ./sources/embassy/
+        cd ./sources/stm32-data-generated/
         git checkout $STM_REV
         cd ../..
 
