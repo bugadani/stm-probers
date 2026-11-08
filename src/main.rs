@@ -43,6 +43,7 @@ fn main() {
 
         for embassy_device in embassy_chips.iter() {
             let mut memories = embassy_device.memory[0].clone(); // TODO: support multi-bank?
+            add_d2_sram_alias(&embassy_device.name, &mut memories);
             memories.sort_by(|a, b| a.address.cmp(&b.address));
 
             update_variant(
@@ -196,6 +197,24 @@ fn add_package_variants(
         // Add package variant
         variant.package_variants.push(package);
     }
+}
+
+/// The dual-core STM32H7 also map D2 SRAM1-3 at 0x1000_0000, which stm32-data does not list.
+fn add_d2_sram_alias(chip: &str, memories: &mut Vec<Memory>) {
+    let dual_core = ["STM32H745", "STM32H747", "STM32H755", "STM32H757"];
+    if !dual_core.iter().any(|prefix| chip.starts_with(prefix)) {
+        return;
+    }
+
+    let sram1 = memories.iter().find(|mem| mem.name == "SRAM1").unwrap();
+    let sram3 = memories.iter().find(|mem| mem.name == "SRAM3").unwrap();
+    let alias = Memory {
+        name: "RAM_D2".to_string(),
+        address: sram1.address - 0x2000_0000,
+        size: sram3.address + sram3.size - sram1.address,
+        ..sram1.clone()
+    };
+    memories.push(alias);
 }
 
 fn update_variant(
