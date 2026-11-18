@@ -96,9 +96,17 @@ fn preprocess_family(family_data: &mut ChipFamily, embassy_chips: &mut Vec<Chip>
         // We don't care about packaging.
         let chip_name = chip.name.trim_end_matches("TR");
 
+        // We don't care about temperature code.
+        // The number *after* a name like STM32G564RET is the temperature code
+        let temp_code_idx = "STM32G564RET".len();
+        let mut new_name = chip_name.to_string();
+        if new_name.len() > temp_code_idx {
+            new_name.replace_range(temp_code_idx..temp_code_idx + 1, "x");
+        }
+
         // Find the embassy chip where the chip or variant name equals chip_name:
-        let Some(embassy_chip) = embassy_chip_from_variant(embassy_chips, chip_name) else {
-            println!("embassy data is missing {chip_name}");
+        let Some(embassy_chip) = embassy_chip_from_variant(embassy_chips, &new_name) else {
+            println!("embassy data is missing {chip_name} - {new_name}");
             continue;
         };
         chip.name = embassy_chip.name.clone();
